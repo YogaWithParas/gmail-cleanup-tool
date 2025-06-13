@@ -161,4 +161,6 @@ cython_debug/
 # Local Gmail credentials and tokens
 token.json
 credentials.json
+# Run logs
+deletion_log.csv
 
