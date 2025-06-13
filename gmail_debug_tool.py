@@ -1,6 +1,8 @@
 import csv
 import os
+import json
 from datetime import datetime
+from dotenv import load_dotenv
 
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
@@ -33,9 +35,11 @@ def check_required_files():
 
 # ✅ Authenticate Gmail
 def authenticate_gmail():
-    check_required_files()
-    creds = None
+    load_dotenv()
+    CLIENT_ID = os.getenv("GMAIL_CLIENT_ID")
+    CLIENT_SECRET = os.getenv("GMAIL_CLIENT_SECRET")
 
+    creds = None
     if os.path.exists(TOKEN_FILE):
         creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
 
@@ -44,14 +48,17 @@ def authenticate_gmail():
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                if not os.path.exists(CREDENTIALS_FILE):
-                    raise FileNotFoundError(
-                        f"Expected file '{CREDENTIALS_FILE}' not found in: {SCRIPT_DIR}"
-                    )
                 print("🔐 Starting OAuth login...")
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    CREDENTIALS_FILE, SCOPES
-                )
+                client_config = {
+                    "installed": {
+                        "client_id": CLIENT_ID,
+                        "client_secret": CLIENT_SECRET,
+                        "redirect_uris": ["http://localhost"],
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                        "token_uri": "https://oauth2.googleapis.com/token"
+                    }
+                }
+                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
                 creds = flow.run_local_server(port=0)
                 print("✅ Granted scopes:", creds.scopes)
 
@@ -64,11 +71,10 @@ def authenticate_gmail():
     except RefreshError as e:
         print("🔁 Token refresh failed. Try deleting token.json manually.")
         raise e
-    except FileNotFoundError as e:
-        print(f"❗ {e}")
+    except Exception as e:
+        print(f"❗ Failed to authenticate: {e}")
         raise e
-
-
+    
 # 📬 Preview email subjects
 def list_email_subjects(service, user_id="me", query=""):
     try:
@@ -170,10 +176,23 @@ def trash_emails(service, user_id, query):
 
     except Exception as e:
         print(f"🚫 Failed to move messages to Trash: {e}")
+def generate_env_if_missing():
+    env_path = os.path.join(SCRIPT_DIR, ".env")
+    if not os.path.exists(env_path):
+        try:
+            with open(CREDENTIALS_FILE, "r") as f:
+                creds = json.load(f)
+            with open(env_path, "w") as env_file:
+                env_file.write(f"GMAIL_CLIENT_ID={creds['installed']['client_id']}\n")
+                env_file.write(f"GMAIL_CLIENT_SECRET={creds['installed']['client_secret']}\n")
+            print("🛠️ .env file generated from credentials.json")
+        except Exception as e:
+            print(f"⚠️ Failed to generate .env: {e}")
 
 
 # ▶️ Main logic
 def main():
+    generate_env_if_missing()  # 🔁 Auto-create .env if it doesn't exist
     service = authenticate_gmail()
 
     print("\n✅ Gmail API test complete. Now choose an option to delete emails:")

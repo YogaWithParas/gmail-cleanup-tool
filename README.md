@@ -23,17 +23,17 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-## 📁 Setup
+## 🔐 Gmail API Setup Instructions
 
-1. Create a project in the Google Cloud Console and enable the Gmail API.
-2. Place `credentials.json` next to the script.
-3. Run:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project and enable the **Gmail API**.
+3. Under "OAuth consent screen", configure the application as Internal or External.
+4. Under "Credentials" → Create credentials → OAuth Client ID → Select **Desktop App**.
+5. Download the `credentials.json` file and place it in the root folder of this project.
+6. Run the script — it will authenticate and create a `token.json` file on first run.
 
-```bash
-python gmail_debug_tool.py
-```
-
-The first run prompts you to log in and creates `token.json`.
+⚠️ **Do not share your credentials.json or token.json.**
+They contain sensitive information and are user-specific.
 
 ## 🔍 Query Options
 
